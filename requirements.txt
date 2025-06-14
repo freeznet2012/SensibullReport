@@ -1,0 +1,17 @@
+# Selenium for web automation
+selenium>=4.15.0
+
+# PDF handling
+PyPDF2>=3.0.0
+
+# HTTP requests for Telegram API
+requests>=2.31.0
+
+# Environment variables management
+python-dotenv>=1.0.0
+
+# Built-in Python modules (no installation needed):
+# - os (file operations)
+# - time (delays and timing)
+# - zipfile (creating zip files)
+# - datetime (date/time handling)

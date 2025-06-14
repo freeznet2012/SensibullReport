@@ -1,3 +1,10 @@
+# Environment variables and secrets (IMPORTANT!)
+.env
+.env.local
+.env.production
+.env.staging
+config_secrets.py
+
 # Python cache files
 __pycache__/
 *.py[cod]
@@ -5,9 +12,25 @@ __pycache__/
 # macOS specific files
 .DS_Store
 
+# Generated files
 pdfs/
+*.pdf
+*.zip
 
-# Environment files
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
 .env
 
 # Logs

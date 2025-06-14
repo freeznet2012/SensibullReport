@@ -1,4 +1,9 @@
+import os
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # List of URLs to capture with individual settings
 URLS = [
@@ -55,14 +60,13 @@ URLS = [
                 "action": "click",
                 "selector": "//button[.//p[contains(text(), 'Index Futures')]]",  # Click Index Futures dropdown by text using XPath
                 "selector_type": "xpath", 
-                "wait_after": 1
+                "wait_after": 2
             },
             {
                 "action": "click_all",
                 "selector": "//button[.//p[contains(text(), 'Index Options')]]",  # Click ALL Index Options buttons
                 "selector_type": "xpath", 
-                "wait_between": 1,  # Wait 1 second between each click
-                "wait_after": 1     # Wait 3 seconds after all clicks are done
+                "wait_after": 2     # Wait 2 seconds after all clicks are done
             }
         ]
     },
@@ -77,7 +81,7 @@ URLS = [
                 "action": "click",
                 "selector": "button#radix-16-trigger-fii",  # Click the Pro tab button
                 "selector_type": "css", 
-                "wait_after": 3
+                "wait_after": 2
             }
         ]
     },
@@ -92,7 +96,7 @@ URLS = [
                 "action": "click",
                 "selector": "button#radix-16-trigger-pro",  # Click the Pro tab button
                 "selector_type": "css", 
-                "wait_after": 3
+                "wait_after": 2
             }
         ]
     },
@@ -107,7 +111,7 @@ URLS = [
                 "action": "click",
                 "selector": "button#radix-16-trigger-client",  # Click the Client tab button
                 "selector_type": "css", 
-                "wait_after": 3
+                "wait_after": 2
             }
         ]
     },
@@ -163,3 +167,14 @@ BROWSER_SETTINGS = {
     "headless": True,
     "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 Edg/91.0.864.59"
 }
+
+# Telegram settings
+TELEGRAM_SETTINGS = {
+    "enabled": True,  # Set to True to enable Telegram
+    "bot_token": os.getenv("TELEGRAM_BOT_TOKEN", ""),  # Read from .env file
+    "chat_id": os.getenv("TELEGRAM_CHAT_ID", ""),  # Read from .env file
+    "message": "📊 Daily Sensibull Report for {date} is ready!"
+}
+
+# Note: Bot token and chat ID are now stored securely in .env file
+# This prevents accidental commits of sensitive information to version control

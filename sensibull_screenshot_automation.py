@@ -1,5 +1,6 @@
 import os
 import time
+import zipfile
 from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
@@ -14,7 +15,7 @@ from PyPDF2 import PdfMerger
 from PyPDF2.errors import PdfReadError
 
 # Import configuration from separate file
-from config import URLS, PDF_SETTINGS, BROWSER_SETTINGS
+from config import URLS, PDF_SETTINGS, BROWSER_SETTINGS, TELEGRAM_SETTINGS
 
 # Set up the Selenium WebDriver
 def setup_driver():
@@ -171,6 +172,67 @@ def merge_pdfs(pdf_files, output_path):
     merger.close()
     print(f"All valid PDFs merged into: {output_path}")
 
+# Create zip file with all PDFs
+def create_zip_file(folder_path, zip_path):
+    """Create a zip file containing all PDFs from the folder"""
+    try:
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for root, dirs, files in os.walk(folder_path):
+                for file in files:
+                    if file.endswith('.pdf'):
+                        file_path = os.path.join(root, file)
+                        arcname = os.path.relpath(file_path, os.path.dirname(folder_path))
+                        zipf.write(file_path, arcname)
+        print(f"Created zip file: {zip_path}")
+        return True
+    except Exception as e:
+        print(f"Error creating zip file: {e}")
+        return False
+
+# Send via Telegram
+def send_telegram_message(zip_path, date_str):
+    """Send message and file via Telegram"""
+    if not TELEGRAM_SETTINGS["enabled"]:
+        print("Telegram sending is disabled in config")
+        return False
+    
+    try:
+        import requests
+    except ImportError:
+        print("requests module not installed. Install with: pip install requests")
+        return False
+    
+    try:
+        bot_token = TELEGRAM_SETTINGS["bot_token"]
+        chat_id = TELEGRAM_SETTINGS["chat_id"]
+        
+        # Send message
+        message = TELEGRAM_SETTINGS["message"].format(date=date_str)
+        message_url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+        message_data = {"chat_id": chat_id, "text": message}
+        
+        response = requests.post(message_url, data=message_data)
+        if response.status_code == 200:
+            print("Telegram message sent successfully")
+        
+        # Send document
+        document_url = f"https://api.telegram.org/bot{bot_token}/sendDocument"
+        with open(zip_path, 'rb') as file:
+            files = {'document': file}
+            data = {'chat_id': chat_id}
+            response = requests.post(document_url, files=files, data=data)
+            
+        if response.status_code == 200:
+            print("Telegram document sent successfully")
+            return True
+        else:
+            print(f"Telegram error: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"Error sending Telegram message: {e}")
+        return False
+
 # Main function
 def main():
     # Create a folder for today's date
@@ -207,6 +269,25 @@ def main():
     # Merge all PDFs into one
     output_pdf = os.path.join(folder_path, "Sensibull_Report.pdf")
     merge_pdfs(pdf_files, output_pdf)
+
+    # Create zip file of all PDFs
+    zip_filename = f"Sensibull_Report_{today}.zip"
+    zip_path = os.path.join(folder_path, zip_filename)
+    
+    print(f"\nCreating zip file with all PDFs...")
+    if create_zip_file(folder_path, zip_path):
+        print(f"✅ Zip file created: {zip_path}")
+        
+        # Send message and file via Telegram
+        print(f"\nSending via Telegram...")
+        if send_telegram_message(zip_path, today):
+            print("✅ Telegram message sent successfully!")
+        else:
+            print("❌ Telegram sending failed")
+    else:
+        print("❌ Failed to create zip file")
+    
+    print(f"\n🎉 Automation complete! All files saved in: {folder_path}")
 
 if __name__ == "__main__":
     main()
