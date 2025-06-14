@@ -5,6 +5,7 @@ __pycache__/
 # macOS specific files
 .DS_Store
 
+pdfs/
 
 # Environment files
 .env

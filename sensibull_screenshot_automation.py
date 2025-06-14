@@ -2,78 +2,157 @@ import os
 import time
 from datetime import datetime
 from selenium import webdriver
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.edge.service import Service as EdgeService
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.edge.options import Options as EdgeOptions
 from selenium.webdriver.chrome.options import Options as ChromeOptions
 from selenium.common.exceptions import WebDriverException
+from PyPDF2 import PdfMerger
+from PyPDF2.errors import PdfReadError
 
-# List of URLs to capture
-URLS = [
-    {"name": "option_chain", "url": "https://web.sensibull.com/option-chain?view=ltp"},
-    {"name": "option_chain_greeks", "url": "https://web.sensibull.com/option-chain?view=greeks"},  # Added new URL for option chain greeks
-    {"name": "oi_change_vs_strike", "url": "https://web.sensibull.com/open-interest/oi-change-vs-strike?tradingsymbol=NIFTY"},
-    {"name": "multistrike_oi", "url": "https://web.sensibull.com/open-interest/multistrike-oi?tradingsymbol=NIFTY"},
-    {"name": "oi_vs_time", "url": "https://web.sensibull.com/open-interest/oi-vs-time?tradingsymbol=NIFTY"},
-    {"name": "fut_oi_vs_time", "url": "https://web.sensibull.com/open-interest/fut-oi-vs-time?tradingsymbol=NIFTY"},
-    {"name": "fii_dii_data", "url": "https://web.sensibull.com/fii-dii-data"},
-    {"name": "fii_dii_fno", "url": "https://web.sensibull.com/fii-dii-data/fno"},
-    {"name": "fii_dii_cash_market", "url": "https://web.sensibull.com/fii-dii-data/cash-market"},
-    {"name": "fii_dii_history", "url": "https://web.sensibull.com/fii-dii-data/history"},
-    {"name": "futures_options_data", "url": "https://web.sensibull.com/futures-options-data?tradingsymbol=NIFTY"},
-    {
-        "name": "daily_nifty_analysis",
-        "url": f"https://web.sensibull.com/daily-nifty-analysis?lang=english&date={datetime.now().strftime('%Y-%m-%d')}"
-    }
-]
+# Import configuration from separate file
+from config import URLS, PDF_SETTINGS, BROWSER_SETTINGS
 
 # Set up the Selenium WebDriver
 def setup_driver():
     try:
-        # Try using Edge
+        # Try using Edge with settings from config
         edge_options = EdgeOptions()
-        edge_options.add_argument("--headless")
+        if BROWSER_SETTINGS["headless"]:
+            edge_options.add_argument("--headless")
         edge_options.add_argument("--disable-gpu")
-        edge_service = EdgeService(executable_path="edgedriver_mac64_m1/msedgedriver")  # Updated with the correct path to Edge WebDriver
+        edge_options.add_argument(f"--window-size={BROWSER_SETTINGS['window_size'][0]},{BROWSER_SETTINGS['window_size'][1]}")
+        edge_options.add_argument(f"--user-agent={BROWSER_SETTINGS['user_agent']}")
+        edge_service = EdgeService(executable_path="edgedriver_mac64_m1/msedgedriver")
         driver = webdriver.Edge(service=edge_service, options=edge_options)
+        driver.set_window_size(BROWSER_SETTINGS['window_size'][0], BROWSER_SETTINGS['window_size'][1])
         print("Using Microsoft Edge for automation.")
     except WebDriverException:
-        # Fallback to Chrome
+        # Fallback to Chrome with settings from config
         chrome_options = ChromeOptions()
-        chrome_options.add_argument("--headless")
+        if BROWSER_SETTINGS["headless"]:
+            chrome_options.add_argument("--headless")
         chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument(f"--window-size={BROWSER_SETTINGS['window_size'][0]},{BROWSER_SETTINGS['window_size'][1]}")
+        chrome_options.add_argument(f"--user-agent={BROWSER_SETTINGS['user_agent']}")
+        chrome_service = ChromeService(executable_path="/path/to/chromedriver")
+        driver = webdriver.Chrome(service=chrome_service, options=chrome_options)
+        driver.set_window_size(BROWSER_SETTINGS['window_size'][0], BROWSER_SETTINGS['window_size'][1])
+        chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument("--window-size=1920,1080")  # Set desktop resolution
+        chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")  # Desktop user agent
         chrome_service = ChromeService(executable_path="/path/to/chromedriver")  # Update with the path to your Chrome driver
         driver = webdriver.Chrome(service=chrome_service, options=chrome_options)
+        driver.set_window_size(1920, 1080)  # Ensure desktop viewport
         print("Using Chrome for automation.")
     return driver
 
-# Take a screenshot of a specific page
-def take_screenshot(driver, url, name, folder_path):
-    driver.get(url)
-    time.sleep(5)  # Wait for the page to load
-    screenshot_path = os.path.join(folder_path, f"{name}.png")
-    driver.save_screenshot(screenshot_path)
-    print(f"Screenshot saved: {screenshot_path}")
+# Print a page to PDF using Microsoft Edge's DevTools Protocol with custom settings
+def print_page_to_pdf_with_edge(driver, url, name, folder_path, scale=0.5, page_ranges=None, landscape=True):
+    try:
+        driver.get(url)
+        
+        # Wait for page to load completely using multiple strategies
+        wait = WebDriverWait(driver, 20)  # Maximum 20 seconds wait
+        
+        try:
+            # Strategy 1: Wait for common Sensibull elements to load
+            wait.until(EC.any_of(
+                EC.presence_of_element_located((By.TAG_NAME, "table")),           # Tables (option chains, data)
+                EC.presence_of_element_located((By.CLASS_NAME, "chart")),         # Charts
+                EC.presence_of_element_located((By.CLASS_NAME, "data-table")),    # Data tables
+                EC.presence_of_element_located((By.TAG_NAME, "canvas")),          # Chart canvases
+                EC.presence_of_element_located((By.CLASS_NAME, "content"))        # General content
+            ))
+        except:
+            # Strategy 2: Fallback - wait for document ready state
+            wait.until(lambda driver: driver.execute_script("return document.readyState") == "complete")
+        
+        # Additional wait for dynamic content to load (charts, AJAX data)
+        time.sleep(2)  # Brief wait for dynamic content after DOM is ready
+        print(f"Page loaded successfully: {name}")
+        
+        # Prepare PDF settings with custom scale, page ranges, and orientation from config
+        pdf_settings = {
+            "printBackground": True,
+            "landscape": landscape,  # Use individual landscape setting
+            "scale": scale,
+            "format": PDF_SETTINGS["format"],
+            "marginTop": PDF_SETTINGS["margins"]["top"],
+            "marginBottom": PDF_SETTINGS["margins"]["bottom"],
+            "marginLeft": PDF_SETTINGS["margins"]["left"],
+            "marginRight": PDF_SETTINGS["margins"]["right"],
+            "displayHeaderFooter": False
+        }
+        
+        # Add page ranges if specified
+        if page_ranges:
+            pdf_settings["pageRanges"] = ",".join(page_ranges)
+        
+        # Use DevTools Protocol to print the page to PDF with custom settings
+        pdf_data = driver.execute_cdp_cmd("Page.printToPDF", pdf_settings)
+
+        # Save the PDF data to a file (decode from base64)
+        import base64
+        pdf_path = os.path.join(folder_path, f"{name}.pdf")
+        with open(pdf_path, "wb") as f:
+            f.write(base64.b64decode(pdf_data['data']))
+        print(f"Page saved as PDF: {pdf_path}")
+        return pdf_path
+    except Exception as e:
+        print(f"Error generating PDF for {name} ({url}): {e}")
+        return None
+
+# Merge all PDFs into one
+def merge_pdfs(pdf_files, output_path):
+    merger = PdfMerger()
+    for pdf in pdf_files:
+        try:
+            merger.append(pdf)
+        except PdfReadError:
+            print(f"Skipping invalid PDF: {pdf}")
+    merger.write(output_path)
+    merger.close()
+    print(f"All valid PDFs merged into: {output_path}")
 
 # Main function
 def main():
     # Create a folder for today's date
     today = datetime.now().strftime("%Y-%m-%d")
-    folder_path = os.path.join("screenshots", today)
+    folder_path = os.path.join("pdfs", today)
     os.makedirs(folder_path, exist_ok=True)
 
     # Set up the driver
     driver = setup_driver()
 
+    pdf_files = []
     try:
-        # Iterate through the URLs and take screenshots
+        # Iterate through the URLs and print pages to PDF with custom settings
         for page in URLS:
-            print(f"Capturing: {page['name']}")
-            take_screenshot(driver, page["url"], page["name"], folder_path)
+            orientation = "landscape" if page.get("landscape", True) else "portrait"
+            print(f"Printing: {page['name']} (scale: {page['scale']}, pages: {page['page_ranges']}, orientation: {orientation})")
+            # Use Edge's DevTools Protocol for PDF generation with custom settings
+            pdf_path = print_page_to_pdf_with_edge(
+                driver, 
+                page["url"], 
+                page["name"], 
+                folder_path, 
+                scale=page["scale"], 
+                page_ranges=page["page_ranges"],
+                landscape=page.get("landscape", True)  # Default to landscape if not specified
+            )
+            if pdf_path:  # Only add valid PDF paths
+                pdf_files.append(pdf_path)
     finally:
         driver.quit()
         print("Automation complete.")
+
+    # Merge all PDFs into one
+    output_pdf = os.path.join(folder_path, "Sensibull_Report.pdf")
+    merge_pdfs(pdf_files, output_pdf)
 
 if __name__ == "__main__":
     main()
