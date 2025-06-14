@@ -1,6 +1,7 @@
 import os
 import time
 import zipfile
+import shutil
 from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
@@ -11,8 +12,6 @@ from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.edge.options import Options as EdgeOptions
 from selenium.webdriver.chrome.options import Options as ChromeOptions
 from selenium.common.exceptions import WebDriverException
-from PyPDF2 import PdfMerger
-from PyPDF2.errors import PdfReadError
 
 # Import configuration from separate file
 from config import URLS, PDF_SETTINGS, BROWSER_SETTINGS, TELEGRAM_SETTINGS
@@ -160,18 +159,6 @@ def print_page_to_pdf_with_edge(driver, url, name, folder_path, scale=0.5, page_
         print(f"Error generating PDF for {name} ({url}): {e}")
         return None
 
-# Merge all PDFs into one
-def merge_pdfs(pdf_files, output_path):
-    merger = PdfMerger()
-    for pdf in pdf_files:
-        try:
-            merger.append(pdf)
-        except PdfReadError:
-            print(f"Skipping invalid PDF: {pdf}")
-    merger.write(output_path)
-    merger.close()
-    print(f"All valid PDFs merged into: {output_path}")
-
 # Create zip file with all PDFs
 def create_zip_file(folder_path, zip_path):
     """Create a zip file containing all PDFs from the folder"""
@@ -233,6 +220,20 @@ def send_telegram_message(zip_path, date_str):
         print(f"Error sending Telegram message: {e}")
         return False
 
+# Cleanup function to delete PDF folder after successful Telegram delivery
+def cleanup_pdf_folder(folder_path):
+    try:
+        if os.path.exists(folder_path):
+            shutil.rmtree(folder_path)
+            print(f"✅ Cleaned up PDF folder: {folder_path}")
+            return True
+        else:
+            print(f"⚠️  PDF folder not found: {folder_path}")
+            return False
+    except Exception as e:
+        print(f"❌ Error cleaning up PDF folder: {e}")
+        return False
+
 # Main function
 def main():
     # Create a folder for today's date
@@ -266,10 +267,6 @@ def main():
         driver.quit()
         print("Automation complete.")
 
-    # Merge all PDFs into one
-    output_pdf = os.path.join(folder_path, "Sensibull_Report.pdf")
-    merge_pdfs(pdf_files, output_pdf)
-
     # Create zip file of all PDFs
     zip_filename = f"Sensibull_Report_{today}.zip"
     zip_path = os.path.join(folder_path, zip_filename)
@@ -282,12 +279,26 @@ def main():
         print(f"\nSending via Telegram...")
         if send_telegram_message(zip_path, today):
             print("✅ Telegram message sent successfully!")
+            
+            # Cleanup: Delete the PDF folder after successful delivery
+            print(f"\nCleaning up PDF folder...")
+            if cleanup_pdf_folder(folder_path):
+                print("✅ PDF folder cleaned up successfully!")
+                print(f"\n🎉 Automation complete! PDFs delivered and cleaned up.")
+            else:
+                print("⚠️  Warning: PDF folder cleanup failed")
+                print(f"\n🎉 Automation complete! PDFs delivered but folder preserved at: {folder_path}")
         else:
             print("❌ Telegram sending failed")
+            print(f"⚠️  PDF folder preserved at: {folder_path}")
     else:
         print("❌ Failed to create zip file")
+        print(f"⚠️  PDF folder preserved at: {folder_path}")
     
-    print(f"\n🎉 Automation complete! All files saved in: {folder_path}")
+    if not os.path.exists(folder_path):
+        print(f"\n🎉 Automation complete! PDFs delivered and cleaned up.")
+    else:
+        print(f"\n🎉 Automation complete! Files saved in: {folder_path}")
 
 if __name__ == "__main__":
     main()

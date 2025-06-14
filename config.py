@@ -8,49 +8,49 @@ load_dotenv()
 # List of URLs to capture with individual settings
 URLS = [
     {
-        "name": "option_chain",
+        "name": "1. option_chain",
         "url": "https://web.sensibull.com/option-chain?view=ltp",
         "scale": 0.6,
         "page_ranges": ["1"],
         "landscape": False  # True for landscape, False for portrait
     },
     {
-        "name": "option_chain_greeks",
+        "name": "2. option_chain_greeks",
         "url": "https://web.sensibull.com/option-chain?view=greeks",
         "scale": 0.6,
         "page_ranges": ["1"],
         "landscape": False
     },
     {
-        "name": "oi_change_vs_strike",
+        "name": "3. oi_change_vs_strike",
         "url": "https://web.sensibull.com/open-interest/oi-change-vs-strike?tradingsymbol=NIFTY",
         "scale": 0.7,
         "page_ranges": ["1"],
         "landscape": True
     },
     {
-        "name": "multistrike_oi",
+        "name": "4. multistrike_oi",
         "url": "https://web.sensibull.com/open-interest/multistrike-oi?tradingsymbol=NIFTY",
         "scale": 0.7,
         "page_ranges": ["2"],
         "landscape": True
     },
     {
-        "name": "oi_vs_time",
+        "name": "5. oi_vs_time",
         "url": "https://web.sensibull.com/open-interest/oi-vs-time?tradingsymbol=NIFTY",
         "scale": 0.8,
         "page_ranges": ["1"],
         "landscape": True  # Portrait for charts
     },
     {
-        "name": "fut_oi_vs_time",
+        "name": "6. fut_oi_vs_time",
         "url": "https://web.sensibull.com/open-interest/fut-oi-vs-time?tradingsymbol=NIFTY",
         "scale": 0.8,
         "page_ranges": ["1"],
         "landscape": True  # Portrait for charts
     },
     {
-        "name": "fii_dii_data",
+        "name": "7. fii_dii_data",
         "url": "https://web.sensibull.com/fii-dii-data",
         "scale": 0.8,
         "page_ranges": ["1"],
@@ -71,7 +71,7 @@ URLS = [
         ]
     },
     {
-        "name": "fii_dii_fno-fii",
+        "name": "8. fii_dii_fno-fii",
         "url": "https://web.sensibull.com/fii-dii-data/fno",
         "scale": 0.8,
         "page_ranges": ["1-4"],
@@ -86,7 +86,7 @@ URLS = [
         ]
     },
     {
-        "name": "fii_dii_fno-pro",
+        "name": "9. fii_dii_fno-pro",
         "url": "https://web.sensibull.com/fii-dii-data/fno",
         "scale": 0.8,
         "page_ranges": ["1-4"],
@@ -101,7 +101,7 @@ URLS = [
         ]
     },
         {
-        "name": "fii_dii_fno-client",
+        "name": "10. fii_dii_fno-client",
         "url": "https://web.sensibull.com/fii-dii-data/fno",
         "scale": 0.8,
         "page_ranges": ["1-4"],
@@ -116,28 +116,28 @@ URLS = [
         ]
     },
     {
-        "name": "fii_dii_cash_market",
+        "name": "11. fii_dii_cash_market",
         "url": "https://web.sensibull.com/fii-dii-data/cash-market",
         "scale": 0.8,
         "page_ranges": ["1-2"],
         "landscape": True
     },
     {
-        "name": "fii_dii_history",
+        "name": "12. fii_dii_history",
         "url": "https://web.sensibull.com/fii-dii-data/history",
         "scale": 0.8,
         "page_ranges": ["1-2"],
         "landscape": True
     },
     {
-        "name": "futures_options_data",
+        "name": "13. futures_options_data",
         "url": "https://web.sensibull.com/futures-options-data?tradingsymbol=NIFTY",
         "scale": 0.8,
         "page_ranges": ["1"],
         "landscape": False
     },
     {
-        "name": "daily_nifty_analysis",
+        "name": "14. daily_nifty_analysis",
         "url": f"https://web.sensibull.com/daily-nifty-analysis?lang=english&date={datetime.now().strftime('%Y-%m-%d')}",
         "scale": 0.8,
         "page_ranges": ["1-4"],

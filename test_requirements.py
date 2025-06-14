@@ -42,7 +42,6 @@ def main():
     # Test required packages
     packages = [
         ("selenium", "selenium"),
-        ("PyPDF2", "PyPDF2"),
         ("requests", "requests"),
     ]
     

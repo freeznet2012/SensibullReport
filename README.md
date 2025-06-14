@@ -10,7 +10,6 @@
 
 ## 📦 Required Python Packages
 - `selenium>=4.15.0` - Web browser automation
-- `PyPDF2>=3.0.0` - PDF file handling and merging
 - `requests>=2.31.0` - HTTP requests for Telegram API
 
 ## �🚀 Features Added
@@ -78,7 +77,6 @@ pip install -r requirements.txt
 
 # Option 2: Install packages individually
 pip install selenium>=4.15.0
-pip install PyPDF2>=3.0.0
 pip install requests>=2.31.0
 ```
 
@@ -133,7 +131,6 @@ The script uses Microsoft Edge WebDriver, which should be automatically managed 
 
 ### Package Specific Issues
 - **Selenium errors**: Try `pip install --upgrade selenium`
-- **PyPDF2 errors**: Try `pip install --upgrade PyPDF2`
 - **Requests errors**: Try `pip install --upgrade requests`
 
 ### Telegram Issues
